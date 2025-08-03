@@ -1,4 +1,8 @@
-const HA_WS_URL = 'ws://192.168.0.112:8123/api/websocket';
+// Try secure WebSocket first, fallback to insecure for development
+const HA_WS_URL = window.location.protocol === 'https:' 
+  ? 'wss://192.168.0.112:8123/api/websocket'  // Secure WebSocket for HTTPS
+  : 'ws://192.168.0.112:8123/api/websocket';   // Insecure WebSocket for HTTP
+
 const HA_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI4NjY3Y2NlNjEzZTg0OTQ2YjY3NTIzYjIzZTM4NWJlYSIsImlhdCI6MTc1NDIyMjE0MywiZXhwIjoyMDY5NTgyMTQzfQ.t8GLmFJjsCsMBS-Bg4h-y_8iSOoOpRK_qTYiQPLIyC4';
 
 export interface SmartPlugControlResult {
