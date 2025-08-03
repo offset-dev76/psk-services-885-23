@@ -1,5 +1,6 @@
 import { GoogleGenAI, LiveServerMessage, Modality, Session, Type } from '@google/genai';
 import { createBlob, decode, decodeAudioData } from '../utils/geminiUtils';
+import { homeAssistantService } from './homeAssistantService';
 
 const GEMINI_API_KEY = 'AIzaSyDC1k_PYaCIy987c-OSfFIu6D5WPFrPa9U';
 
@@ -67,6 +68,33 @@ const functionDeclarations = [
         }
       },
       required: ["query"]
+    }
+  },
+  {
+    name: "turn_on_smart_plug",
+    description: "Turn on the smart plug connected to Home Assistant",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+      required: []
+    }
+  },
+  {
+    name: "turn_off_smart_plug",
+    description: "Turn off the smart plug connected to Home Assistant",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+      required: []
+    }
+  },
+  {
+    name: "get_smart_plug_status",
+    description: "Get the current status of the smart plug (on/off)",
+    parameters: {
+      type: Type.OBJECT,
+      properties: {},
+      required: []
     }
   }
 ];
@@ -235,6 +263,15 @@ export class GeminiLiveAudioService {
       case 'play_youtube_video':
         result = this.playYouTubeVideo(args.query);
         break;
+      case 'turn_on_smart_plug':
+        result = await this.turnOnSmartPlug();
+        break;
+      case 'turn_off_smart_plug':
+        result = await this.turnOffSmartPlug();
+        break;
+      case 'get_smart_plug_status':
+        result = await this.getSmartPlugStatus();
+        break;
       default:
         console.log('Unknown function call:', functionName);
         result = { success: false, message: 'Unknown function' };
@@ -324,6 +361,91 @@ export class GeminiLiveAudioService {
     }
     
     return { success: true, message: `YouTube video search for "${query}" opened successfully` };
+  }
+
+  private async turnOnSmartPlug(): Promise<{ success: boolean; message: string }> {
+    const entityId = 'switch.smart_plug_10_amp_energy_monitoring_socket_1';
+    
+    try {
+      console.log('Turning on smart plug:', entityId);
+      const result = await homeAssistantService.controlSmartPlug(entityId, true);
+      
+      if (this.onResponseCallback) {
+        this.onResponseCallback('Smart plug turned on successfully!');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to turn on smart plug:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (this.onResponseCallback) {
+        this.onResponseCallback(`Failed to turn on smart plug: ${errorMessage}`);
+      }
+      
+      return { success: false, message: errorMessage };
+    }
+  }
+
+  private async turnOffSmartPlug(): Promise<{ success: boolean; message: string }> {
+    const entityId = 'switch.smart_plug_10_amp_energy_monitoring_socket_1';
+    
+    try {
+      console.log('Turning off smart plug:', entityId);
+      const result = await homeAssistantService.controlSmartPlug(entityId, false);
+      
+      if (this.onResponseCallback) {
+        this.onResponseCallback('Smart plug turned off successfully!');
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Failed to turn off smart plug:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (this.onResponseCallback) {
+        this.onResponseCallback(`Failed to turn off smart plug: ${errorMessage}`);
+      }
+      
+      return { success: false, message: errorMessage };
+    }
+  }
+
+  private async getSmartPlugStatus(): Promise<{ success: boolean; message: string }> {
+    const entityId = 'switch.smart_plug_10_amp_energy_monitoring_socket_1';
+    
+    try {
+      console.log('Getting smart plug status:', entityId);
+      const entityState = await homeAssistantService.getEntityState(entityId);
+      
+      if (entityState) {
+        const status = entityState.state === 'on' ? 'on' : 'off';
+        const message = `Smart plug is currently ${status}`;
+        
+        if (this.onResponseCallback) {
+          this.onResponseCallback(message);
+        }
+        
+        return { success: true, message };
+      } else {
+        const errorMessage = 'Smart plug not found';
+        
+        if (this.onResponseCallback) {
+          this.onResponseCallback(errorMessage);
+        }
+        
+        return { success: false, message: errorMessage };
+      }
+    } catch (error) {
+      console.error('Failed to get smart plug status:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      
+      if (this.onResponseCallback) {
+        this.onResponseCallback(`Failed to get smart plug status: ${errorMessage}`);
+      }
+      
+      return { success: false, message: errorMessage };
+    }
   }
 
   private async setupAudioInput(): Promise<void> {
